@@ -59,4 +59,4 @@ RUN zypper in -y podman
 # patch this script to avoid trouble in running podman within podman
 RUN echo "podman -v" > tools/test_isotovideo
 
-RUN make test || echo "GiveUp"
+RUN make test
