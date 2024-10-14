@@ -19,9 +19,37 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Preconfigure
-        run: apt install podman
+        run: sudo apt install podman
 
       - name: Build image
         run: |
           podman --version
-          ls -lai
+          podman build -f Dockerfile.leap15.5
+  build_leap_15sp6:
+    # No matter which image, as soon as it can provide podman
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preconfigure
+        run: sudo apt install podman
+
+      - name: Build image
+        run: |
+          podman --version
+          podman build -f Dockerfile.leap15.6
+  build_tumbleweed:
+    # No matter which image, as soon as it can provide podman
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preconfigure
+        run: sudo apt install podman
+
+      - name: Build image
+        run: |
+          podman --version
+          podman build -f Dockerfile.tw
