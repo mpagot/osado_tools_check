@@ -26,9 +26,10 @@ RUN chmod +x /tmp/postprepare_zypper_common.sh && /tmp/postprepare_zypper_common
 RUN sed -i 's/which/command -v/g' tools/check_yaml
 
 # patch this script to avoid trouble in running podman within podman
+# Patch is "DO NOTHING"
 RUN echo "podman -v" > tools/test_isotovideo
 
-RUN make test-yaml-valid && make tidy-check
-RUN time make test-compile
-RUN make unit-test || time PERL5OPT=-MCarp::Always prove --time --verbose -l -Ios-autoinst/ t/
-RUN make test
+#RUN make test-yaml-valid && make tidy-check
+#RUN time make test-compile
+#RUN make unit-test || time PERL5OPT=-MCarp::Always prove --time --verbose -l -Ios-autoinst/ t/
+#RUN make test
