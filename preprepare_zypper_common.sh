@@ -1,3 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Install all the dependency needed before to be able
+# to run `make prepare`. Ideally only os-autoinst-distri-opensuse-deps
+
 packages=(
 os-autoinst-distri-opensuse-deps # install what requested in https://github.com/os-autoinst/os-autoinst-distri-opensuse/blob/9a8b06f39afe23b1a367453f2d5c4ed676815c1a/CONTRIBUTING.md?plain=1#L35
 make # make needed to run `make prepare` but not provided by any packages till now

@@ -1,14 +1,13 @@
 FROM opensuse/leap:15.6
 
-COPY preclone_zypper_dep.sh /tmp/preclone_zypper_dep.sh
+COPY preclone_zypper_dep.sh preprepare_zypper_common.sh postprepare_zypper_common.sh /tmp/
 
-RUN /tmp/preclone_zypper_dep.sh
+RUN chmod +x /tmp/preclone_zypper_dep.sh && /tmp/preclone_zypper_dep.sh
 
 WORKDIR /work
 RUN git clone https://github.com/os-autoinst/os-autoinst-distri-opensuse
 
-COPY preprepare_zypper_common.sh /tmp/preprepare_zypper_common.sh
-RUN /tmp/preprepare_zypper_common.sh
+RUN chmod +x /tmp/preprepare_zypper_common.sh && /tmp/preprepare_zypper_common.sh
 
 # perl module Inline::Python needs Python.h
 RUN zypper in -y python3-devel
@@ -16,8 +15,7 @@ RUN zypper in -y python3-devel
 WORKDIR /work/os-autoinst-distri-opensuse
 RUN make prepare
 
-COPY postprepare_zypper_common.sh /tmp/postprepare_zypper_common.sh
-RUN /tmp/postprepare_zypper_common.sh
+RUN chmod +x /tmp/postprepare_zypper_common.sh && /tmp/postprepare_zypper_common.sh
 
 # patch this script to avoid trouble in running podman within podman
 RUN echo "podman -v" > tools/test_isotovideo
