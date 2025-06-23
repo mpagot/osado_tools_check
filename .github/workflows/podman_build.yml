@@ -47,11 +47,13 @@ jobs:
       - name: Build image for ${{ matrix.os }}
         run: |
           echo "Building with Dockerfile: ${{ matrix.dockerfile }}"
-          podman build --tag ${{ matrix.tag }}:latest -f ${{ matrix.dockerfile }} .
+          podman build --tag tool_test_${{ matrix.tag }}:latest -f ${{ matrix.dockerfile }} .
+          echo "---------------------------------------"
+          podman inspect tool_test_${{ matrix.tag }} -s
 
       # Step 4: Save the container image to a tarball
       - name: Save image to tarball
-        run: podman save -o image.tar ${{ matrix.tag }}:latest
+        run: podman save -o image.tar tool_test_${{ matrix.tag }}:latest
         
       # Step 5: Upload the image tarball as an artifact
       - name: Upload image artifact
@@ -95,13 +97,15 @@ jobs:
 
       # Step 4: Load the image from the tarball into podman
       - name: Load image from tarball
-        run: podman load -i image.tar
+        run: |
+          podman load -i image.tar
+          podman inspect tool_test_${{ matrix.tag }} -s
 
       # Step 5: Run the specified make target inside the container
       # The step name is dynamic to clearly show which test is running.
       - name: Run ${{ matrix.make_target }} on ${{ matrix.tag }}
         run: |
-          podman run --rm ${{ matrix.tag }}:latest ${{ matrix.make_target }}
+          podman run --rm tool_test_${{ matrix.tag }}:latest ${{ matrix.make_target }}
 
 
 
