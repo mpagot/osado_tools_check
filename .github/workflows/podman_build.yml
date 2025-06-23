@@ -15,10 +15,10 @@ jobs:
   # No matter which image is used here, as soon as it can provide podman.
   build_images:
     runs-on: ubuntu-latest
-    
+
     # Define the matrix strategy
     strategy:
-      # To allow all the 3 to run as long as possible. They are independent enough. 
+      # To allow all the 3 to run as long as possible. They are independent enough.
       fail-fast: false
       matrix:
         include:
@@ -93,6 +93,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: image-${{ matrix.tag }}
+          path: .
 
       # Step 4: Load the image from the tarball into podman
       - name: Load image from tarball
@@ -106,7 +107,7 @@ jobs:
         run: |
           podman run --rm tool_test_${{ matrix.tag }}:latest ${{ matrix.make_target }}
 
-test:
+  test:
     runs-on: ubuntu-latest
     needs: preliminary_test
     strategy:
@@ -129,6 +130,7 @@ test:
         uses: actions/download-artifact@v4
         with:
           name: image-${{ matrix.tag }}
+          path: .
 
       # Step 4: Load the image from the tarball into podman
       - name: Load image from tarball
