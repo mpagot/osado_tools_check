@@ -11,45 +11,136 @@ on:
   workflow_dispatch:
 
 jobs:
-  build_leap_15sp5:
-    # No matter which image, as soon as it can provide podman
+  # This single job will run for each OS version defined in the matrix.
+  # No matter which image is used here, as soon as it can provide podman.
+  build_images:
     runs-on: ubuntu-latest
 
+    # Define the matrix strategy
+    strategy:
+      # To allow all the 3 to run as long as possible. They are independent enough.
+      fail-fast: false
+      matrix:
+        include:
+          - os: "Leap 15.5"
+            tag: "leap.15.5"
+            dockerfile: "Dockerfile.leap15.5"
+          - os: "Leap 15.6"
+            tag: "leap.15.6"
+            dockerfile: "Dockerfile.leap15.6"
+          - os: "Tumbleweed"
+            tag: "tumbleweed"
+            dockerfile: "Dockerfile.tw"
+
     steps:
-      - uses: actions/checkout@v4
+      # Step 1: Check out the repository's code
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Preconfigure
-        run: sudo apt install podman
+      # Step 2: Install podman, which is required for building the images
+      - name: Install podman
+        run: sudo apt-get update && sudo apt-get install -y podman && podman --version
 
-      - name: Build image
+      # Step 3: Build the container image
+      # The step name and the build command use variables from the matrix.
+      # This makes the logs clear and the command dynamic for each OS version.
+      - name: Build image for ${{ matrix.os }}
         run: |
-          podman --version
-          podman build -f Dockerfile.leap15.5
-  build_leap_15sp6:
-    # No matter which image, as soon as it can provide podman
+          echo "Building with Dockerfile: ${{ matrix.dockerfile }}"
+          podman build --tag tool_test_${{ matrix.tag }}:latest -f ${{ matrix.dockerfile }} .
+          echo "---------------------------------------"
+          podman inspect tool_test_${{ matrix.tag }} -s
+
+      # Step 4: Save the container image to a tarball
+      - name: Save image to tarball
+        run: podman save -o image.tar tool_test_${{ matrix.tag }}:latest
+        
+      # Step 5: Upload the image tarball as an artifact
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-${{ matrix.tag }}
+          path: image.tar
+
+  # This job runs after the 'build_images' job has completed.
+  # It uses a nested matrix to test each OS against each make target.
+  preliminary_test:
     runs-on: ubuntu-latest
+    needs: build_images
+    strategy:
+      fail-fast: false
+      matrix:
+        # First dimension of the matrix: OS
+        tag: [ "leap.15.5", "leap.15.6", "tumbleweed" ]
+        # Second dimension of the matrix: Make target command
+        make_target:
+          - 'make tidy-check'
+          - 'make test-yaml-valid'
+          - 'make test-compile'
+          - 'sh -c "make unit-test || time PERL5OPT=-MCarp::Always prove --time --verbose -l -Ios-autoinst/ t/"'
 
     steps:
-      - uses: actions/checkout@v4
+      # Step 1: Check out the repository's code to access the Makefile
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Preconfigure
-        run: sudo apt install podman
+      # Step 2: Install podman
+      - name: Install podman
+        run: sudo apt-get update && sudo apt-get install -y podman && podman --version
 
-      - name: Build image
+      # Step 3: Download the corresponding image artifact from the 'build' job
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: image-${{ matrix.tag }}
+          path: .
+
+      # Step 4: Load the image from the tarball into podman
+      - name: Load image from tarball
         run: |
-          podman --version
-          podman build -f Dockerfile.leap15.6
-  build_tumbleweed:
-    # No matter which image, as soon as it can provide podman
+          podman load -i image.tar
+          podman inspect tool_test_${{ matrix.tag }} -s
+
+      # Step 5: Run the specified make target inside the container
+      # The step name is dynamic to clearly show which test is running.
+      - name: Run ${{ matrix.make_target }} on ${{ matrix.tag }}
+        run: |
+          podman run --rm tool_test_${{ matrix.tag }}:latest ${{ matrix.make_target }}
+
+  test:
     runs-on: ubuntu-latest
+    needs: preliminary_test
+    strategy:
+      fail-fast: false
+      matrix:
+        # First dimension of the matrix: OS
+        tag: [ "leap.15.5", "leap.15.6", "tumbleweed" ]
 
     steps:
-      - uses: actions/checkout@v4
+      # Step 1: Check out the repository's code to access the Makefile
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Preconfigure
-        run: sudo apt install podman
+      # Step 2: Install podman
+      - name: Install podman
+        run: sudo apt-get update && sudo apt-get install -y podman && podman --version
 
-      - name: Build image
+      # Step 3: Download the corresponding image artifact from the 'build' job
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: image-${{ matrix.tag }}
+          path: .
+
+      # Step 4: Load the image from the tarball into podman
+      - name: Load image from tarball
+        run: podman inspect tool_test_${{ matrix.tag }} -s
+
+      # Step 5: Run the specified make target inside the container
+      # The step name is dynamic to clearly show which test is running.
+      - name: Run make test on ${{ matrix.tag }}
         run: |
-          podman --version
-          podman build -f Dockerfile.tw
+          podman run --rm tool_test_${{ matrix.tag }}:latest make test
+
+
+
