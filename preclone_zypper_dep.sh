@@ -10,7 +10,7 @@ if [ $ID = "opensuse-leap" ]; then
   # It is documented in https://open.qa/docs/#_development_version_repository
   zypper --non-interactive --gpg-auto-import-keys \
     ar -p 90 \
-    -f "http://download.opensuse.org/repositories/devel:/openQA:/Leap:/${VERSION}/${VERSION}" devel_openQA_Leap
+    -f "http://download.opensuse.org/repositories/devel:openQA:Leap:${VERSION}/${VERSION}" devel_openQA_Leap
   zypper --non-interactive --gpg-auto-import-keys ref
   zypper --non-interactive dup --from devel_openQA_Leap --allow-vendor-change || exit 1
 else
