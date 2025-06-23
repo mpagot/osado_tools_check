@@ -64,7 +64,7 @@ jobs:
 
   # This job runs after the 'build_images' job has completed.
   # It uses a nested matrix to test each OS against each make target.
-  test:
+  preliminary_test:
     runs-on: ubuntu-latest
     needs: build_images
     strategy:
@@ -74,11 +74,10 @@ jobs:
         tag: [ "leap.15.5", "leap.15.6", "tumbleweed" ]
         # Second dimension of the matrix: Make target command
         make_target:
-        - 'make tidy-check'
-        - 'make test-yaml-valid'
-        - 'make test-compile'
-        - 'make unit-test' #|| time PERL5OPT=-MCarp::Always prove --time --verbose -l -Ios-autoinst/ t/
-        - 'make test'
+          - 'make tidy-check'
+          - 'make test-yaml-valid'
+          - 'time make test-compile'
+          - 'sh -c "make unit-test || time PERL5OPT=-MCarp::Always prove --time --verbose -l -Ios-autoinst/ t/"'
 
     steps:
       # Step 1: Check out the repository's code to access the Makefile
@@ -106,6 +105,40 @@ jobs:
       - name: Run ${{ matrix.make_target }} on ${{ matrix.tag }}
         run: |
           podman run --rm tool_test_${{ matrix.tag }}:latest ${{ matrix.make_target }}
+
+test:
+    runs-on: ubuntu-latest
+    needs: preliminary_test
+    strategy:
+      fail-fast: false
+      matrix:
+        # First dimension of the matrix: OS
+        tag: [ "leap.15.5", "leap.15.6", "tumbleweed" ]
+
+    steps:
+      # Step 1: Check out the repository's code to access the Makefile
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Install podman
+      - name: Install podman
+        run: sudo apt-get update && sudo apt-get install -y podman && podman --version
+
+      # Step 3: Download the corresponding image artifact from the 'build' job
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: image-${{ matrix.tag }}
+
+      # Step 4: Load the image from the tarball into podman
+      - name: Load image from tarball
+        run: podman inspect tool_test_${{ matrix.tag }} -s
+
+      # Step 5: Run the specified make target inside the container
+      # The step name is dynamic to clearly show which test is running.
+      - name: Run make test on ${{ matrix.tag }}
+        run: |
+          podman run --rm tool_test_${{ matrix.tag }}:latest make test
 
 
 
