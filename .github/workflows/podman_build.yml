@@ -23,10 +23,13 @@ jobs:
       matrix:
         include:
           - os: "Leap 15.5"
+            tag: "leap.15.5"
             dockerfile: "Dockerfile.leap15.5"
           - os: "Leap 15.6"
+            tag: "leap.15.6"
             dockerfile: "Dockerfile.leap15.6"
           - os: "Tumbleweed"
+            tag: "tumbleweed"
             dockerfile: "Dockerfile.tw"
 
     steps:
@@ -44,39 +47,18 @@ jobs:
       - name: Build image for ${{ matrix.os }}
         run: |
           echo "Building with Dockerfile: ${{ matrix.dockerfile }}"
-          podman build --tag ${{ matrix.os }}:latest -f ${{ matrix.dockerfile }} .
+          podman build --tag ${{ matrix.tag }}:latest -f ${{ matrix.dockerfile }} .
 
       # Step 4: Save the container image to a tarball
       - name: Save image to tarball
-        run: podman save -o image.tar ${{ matrix.os }}:latest
+        run: podman save -o image.tar ${{ matrix.tag }}:latest
         
       # Step 5: Upload the image tarball as an artifact
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
         with:
-          name: image-${{ matrix.os }}
+          name: image-${{ matrix.tag }}
           path: image.tar
-
-      - name: run make tidy-check for image ${{ matrix.os }}
-        run: |
-          podman run ${{ matrix.os }}:latest make tidy-check
-
-      - name: run make test-yaml-valid for image ${{ matrix.os }}
-        run: |
-          podman run ${{ matrix.os }}:latest make test-yaml-valid
-
-      - name: run make test-compile for image ${{ matrix.os }}
-        run: |
-          podman run ${{ matrix.os }}:latest time make test-compile
-
-      - name: run make unit-test for image ${{ matrix.os }}
-        run: |
-          podman run ${{ matrix.os }}:latest make unit-test
-
-      - name: run make test for image ${{ matrix.os }}
-        run: |
-          podman run ${{ matrix.os }}:latest make test
-
 
   # This job runs after the 'build_images' job has completed.
   # It uses a nested matrix to test each OS against each make target.
@@ -87,9 +69,14 @@ jobs:
       fail-fast: false
       matrix:
         # First dimension of the matrix: OS
-        os: [ "Leap 15.5", "Leap 15.6", "Tumbleweed" ]
+        tag: [ "leap.15.5", "leap.15.6", "tumbleweed" ]
         # Second dimension of the matrix: Make target command
-        make_target: [ 'make tidy-check', 'make test-yaml-valid', 'make test-compile', 'make unit-test', 'make test' ]
+        make_target:
+        - 'make tidy-check'
+        - 'make test-yaml-valid'
+        - 'make test-compile'
+        - 'make unit-test' #|| time PERL5OPT=-MCarp::Always prove --time --verbose -l -Ios-autoinst/ t/
+        - 'make test'
 
     steps:
       # Step 1: Check out the repository's code to access the Makefile
@@ -104,7 +91,7 @@ jobs:
       - name: Download image artifact
         uses: actions/download-artifact@v4
         with:
-          name: image-${{ matrix.os }}
+          name: image-${{ matrix.tag }}
 
       # Step 4: Load the image from the tarball into podman
       - name: Load image from tarball
@@ -112,9 +99,9 @@ jobs:
 
       # Step 5: Run the specified make target inside the container
       # The step name is dynamic to clearly show which test is running.
-      - name: Run ${{ matrix.make_target }} on ${{ matrix.os }}
+      - name: Run ${{ matrix.make_target }} on ${{ matrix.tag }}
         run: |
-          podman run --rm ${{ matrix.os }}:latest ${{ matrix.make_target }}
+          podman run --rm ${{ matrix.tag }}:latest ${{ matrix.make_target }}
 
-#RUN make  || time PERL5OPT=-MCarp::Always prove --time --verbose -l -Ios-autoinst/ t/
+
 

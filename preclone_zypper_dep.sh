@@ -5,7 +5,7 @@ set -euo pipefail
 # about packages needed even to be able to git clone the repo 
 
 source /etc/os-release
-if [ $ID = "opensuse-leap" ]; then
+if [[ "${ID:-}" == "opensuse-leap" ]]; then
   # This additional repo is needed to get a proper version of perl tidy
   # It is documented in https://open.qa/docs/#_development_version_repository
   zypper --non-interactive --gpg-auto-import-keys \
@@ -18,4 +18,4 @@ else
 fi
 
 # git is needed to get the code
-zypper in -y git
+zypper --non-interactive install git
