@@ -14,7 +14,7 @@ if [[ "${ID:-}" == "opensuse-leap" ]]; then
   zypper --non-interactive --gpg-auto-import-keys ref
   zypper --non-interactive dup --from devel_openQA_Leap --allow-vendor-change || exit 1
 else
-  zypper ref && zypper --non-interactive up -y
+  zypper ref && zypper --non-interactive dup -y
 fi
 
 # git is needed to get the code

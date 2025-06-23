@@ -11,3 +11,6 @@ podman # dependency needed by make target 'test-isotovideo'
 )
 
 zypper in -y "${packages[@]}"
+
+zypper -n clean
+rm -rf /var/cache/zypp/packages/*
