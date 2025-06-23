@@ -76,7 +76,7 @@ jobs:
         make_target:
           - 'make tidy-check'
           - 'make test-yaml-valid'
-          - 'time make test-compile'
+          - 'make test-compile'
           - 'sh -c "make unit-test || time PERL5OPT=-MCarp::Always prove --time --verbose -l -Ios-autoinst/ t/"'
 
     steps:
